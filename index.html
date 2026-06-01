@@ -44,6 +44,7 @@
         <!-- QR Preview -->
         <div class="qr-preview" id="qrPreview">
           <canvas id="qrCanvas"></canvas>
+          <div id="qrHidden" style="display:none"></div>
           <div class="qr-placeholder" id="qrPlaceholder">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -179,7 +180,7 @@
   <div class="toast" id="toast"></div>
 
   <!-- Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 
   <!-- App -->

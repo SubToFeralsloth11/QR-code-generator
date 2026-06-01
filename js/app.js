@@ -6,24 +6,25 @@
   'use strict';
 
   /* ---------- DOM refs ---------- */
-  const urlInput = document.getElementById('urlInput');
-  const urlBadge = document.getElementById('urlBadge');
-  const qrPreview = document.getElementById('qrPreview');
-  const qrCanvas = document.getElementById('qrCanvas');
-  const qrPlaceholder = document.getElementById('qrPlaceholder');
-  const customizeToggle = document.getElementById('customizeToggle');
-  const customizePanel = document.getElementById('customizePanel');
-  const fgColorInput = document.getElementById('fgColor');
-  const bgColorInput = document.getElementById('bgColor');
-  const colorPresets = document.getElementById('colorPresets');
-  const sizeSlider = document.getElementById('sizeSlider');
-  const sizeValue = document.getElementById('sizeValue');
-  const errorCorrection = document.getElementById('errorCorrection');
-  const btnDownloadPNG = document.getElementById('btnDownloadPNG');
-  const btnDownloadSVG = document.getElementById('btnDownloadSVG');
-  const btnDownloadPDF = document.getElementById('btnDownloadPDF');
-  const btnCopyLink = document.getElementById('btnCopyLink');
-  const toast = document.getElementById('toast');
+  var urlInput = document.getElementById('urlInput');
+  var urlBadge = document.getElementById('urlBadge');
+  var qrPreview = document.getElementById('qrPreview');
+  var qrCanvas = document.getElementById('qrCanvas');
+  var qrHidden = document.getElementById('qrHidden');
+  var qrPlaceholder = document.getElementById('qrPlaceholder');
+  var customizeToggle = document.getElementById('customizeToggle');
+  var customizePanel = document.getElementById('customizePanel');
+  var fgColorInput = document.getElementById('fgColor');
+  var bgColorInput = document.getElementById('bgColor');
+  var colorPresets = document.getElementById('colorPresets');
+  var sizeSlider = document.getElementById('sizeSlider');
+  var sizeValue = document.getElementById('sizeValue');
+  var errorCorrection = document.getElementById('errorCorrection');
+  var btnDownloadPNG = document.getElementById('btnDownloadPNG');
+  var btnDownloadSVG = document.getElementById('btnDownloadSVG');
+  var btnDownloadPDF = document.getElementById('btnDownloadPDF');
+  var btnCopyLink = document.getElementById('btnCopyLink');
+  var toast = document.getElementById('toast');
 
   /* ---------- State ---------- */
   var currentURL = '';
@@ -33,15 +34,14 @@
     color: { dark: '#000000', light: '#ffffff' },
     errorCorrectionLevel: 'M'
   };
+  var qrInstance = null;
 
   /* ---------- Helpers ---------- */
   function debounce(fn, delay) {
     var timer;
     return function () {
-      var context = this;
-      var args = arguments;
       clearTimeout(timer);
-      timer = setTimeout(function () { fn.apply(context, args); }, delay);
+      timer = setTimeout(fn, delay);
     };
   }
 
@@ -87,6 +87,43 @@
     }
   }
 
+  function getCorrectLevel(level) {
+    var map = { L: QRCode.CorrectLevel.L, M: QRCode.CorrectLevel.M, Q: QRCode.CorrectLevel.Q, H: QRCode.CorrectLevel.H };
+    return map[level] || QRCode.CorrectLevel.M;
+  }
+
+  /* ---------- Canvas rendering ---------- */
+  function renderToCanvas(modules, moduleCount) {
+    var size = currentOptions.width;
+    var quiet = currentOptions.margin;
+    var totalModules = moduleCount + quiet * 2;
+    var moduleSize = Math.floor(size / totalModules);
+    var offset = quiet * moduleSize;
+    var renderSize = moduleCount * moduleSize;
+
+    qrCanvas.width = size;
+    qrCanvas.height = size;
+
+    var ctx = qrCanvas.getContext('2d');
+
+    // Clear
+    ctx.clearRect(0, 0, size, size);
+
+    // Background
+    ctx.fillStyle = currentOptions.color.light;
+    ctx.fillRect(0, 0, size, size);
+
+    // Modules
+    ctx.fillStyle = currentOptions.color.dark;
+    for (var row = 0; row < moduleCount; row++) {
+      for (var col = 0; col < moduleCount; col++) {
+        if (modules && modules[row] && modules[row][col]) {
+          ctx.fillRect(offset + col * moduleSize, offset + row * moduleSize, moduleSize, moduleSize);
+        }
+      }
+    }
+  }
+
   /* ---------- QR Generation ---------- */
   function generateQR() {
     if (!currentURL) {
@@ -95,30 +132,41 @@
       qrPreview.classList.remove('active');
       setButtonsEnabled(false);
       updateURLBadge('');
+      qrInstance = null;
       return;
     }
 
     updateURLBadge(currentURL);
 
     try {
-      QRCode.toCanvas(qrCanvas, currentURL, currentOptions, function (error) {
-        if (error) {
-          console.error('QR generation failed:', error);
-          qrCanvas.style.display = 'none';
-          qrPlaceholder.style.display = 'flex';
-          qrPreview.classList.remove('active');
-          setButtonsEnabled(false);
-          showToast('Could not generate QR code. Check the URL.', true);
-          return;
-        }
-        qrCanvas.style.display = 'block';
-        qrPlaceholder.style.display = 'none';
-        qrPreview.classList.add('active');
-        setButtonsEnabled(true);
+      // Clear hidden div and recreate QRCode instance
+      qrHidden.innerHTML = '';
+      qrInstance = new QRCode(qrHidden, {
+        text: currentURL,
+        width: currentOptions.width,
+        height: currentOptions.width,
+        colorDark: currentOptions.color.dark,
+        colorLight: currentOptions.color.light,
+        correctLevel: getCorrectLevel(currentOptions.errorCorrectionLevel)
       });
+
+      // Extract module data and render to canvas
+      var modules = qrInstance._oQRCode.modules;
+      var moduleCount = qrInstance._oQRCode.moduleCount;
+      renderToCanvas(modules, moduleCount);
+
+      // Show canvas
+      qrCanvas.style.display = 'block';
+      qrPlaceholder.style.display = 'none';
+      qrPreview.classList.add('active');
+      setButtonsEnabled(true);
     } catch (e) {
       console.error('QR generation error:', e);
-      showToast('Something went wrong. Please try again.', true);
+      qrCanvas.style.display = 'none';
+      qrPlaceholder.style.display = 'flex';
+      qrPreview.classList.remove('active');
+      setButtonsEnabled(false);
+      showToast('Could not generate QR code. Check the URL.', true);
     }
   }
 
@@ -162,19 +210,33 @@
   }
 
   function downloadSVG() {
-    if (!currentURL) return;
-    QRCode.toString(currentURL, {
-      type: 'svg',
-      width: currentOptions.width,
-      margin: currentOptions.margin,
-      color: currentOptions.color,
-      errorCorrectionLevel: currentOptions.errorCorrectionLevel
-    }, function (error, svgString) {
-      if (error) {
-        showToast('Failed to generate SVG.', true);
-        return;
+    if (!currentURL || !qrInstance) return;
+    try {
+      var modules = qrInstance._oQRCode.modules;
+      var moduleCount = qrInstance._oQRCode.moduleCount;
+      var size = currentOptions.width;
+      var quiet = currentOptions.margin;
+      var totalModules = moduleCount + quiet * 2;
+      var moduleSize = size / totalModules;
+      var dark = currentOptions.color.dark;
+      var light = currentOptions.color.light;
+
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">';
+      svg += '<rect width="' + size + '" height="' + size + '" fill="' + light + '"/>';
+
+      var offset = quiet * moduleSize;
+      for (var row = 0; row < moduleCount; row++) {
+        for (var col = 0; col < moduleCount; col++) {
+          if (modules[row] && modules[row][col]) {
+            var x = offset + col * moduleSize;
+            var y = offset + row * moduleSize;
+            svg += '<rect x="' + x + '" y="' + y + '" width="' + moduleSize + '" height="' + moduleSize + '" fill="' + dark + '"/>';
+          }
+        }
       }
-      var blob = new Blob([svgString], { type: 'image/svg+xml' });
+      svg += '</svg>';
+
+      var blob = new Blob([svg], { type: 'image/svg+xml' });
       var url = URL.createObjectURL(blob);
       var link = document.createElement('a');
       link.download = 'qr-code.svg';
@@ -184,7 +246,10 @@
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       showToast('QR code downloaded as SVG');
-    });
+    } catch (e) {
+      console.error('SVG generation error:', e);
+      showToast('Failed to generate SVG.', true);
+    }
   }
 
   function downloadPDF() {
@@ -245,23 +310,19 @@
 
   /* ---------- Init ---------- */
   function init() {
-    // URL input
     urlInput.addEventListener('input', generateDebounced);
     urlInput.addEventListener('paste', function () {
       setTimeout(generateDebounced, 50);
     });
 
-    // Customization toggle
     customizeToggle.addEventListener('click', toggleCustomize);
 
-    // Color pickers
     fgColorInput.addEventListener('input', function () {
       setActivePreset(fgColorInput.value);
       updateOptions();
     });
     bgColorInput.addEventListener('input', updateOptions);
 
-    // Color presets
     colorPresets.addEventListener('click', function (e) {
       var btn = e.target.closest('.color-preset');
       if (!btn) return;
@@ -271,19 +332,14 @@
       updateOptions();
     });
 
-    // Size slider
     sizeSlider.addEventListener('input', updateOptions);
-
-    // Error correction
     errorCorrection.addEventListener('change', updateOptions);
 
-    // Download buttons
     btnDownloadPNG.addEventListener('click', downloadPNG);
     btnDownloadSVG.addEventListener('click', downloadSVG);
     btnDownloadPDF.addEventListener('click', downloadPDF);
     btnCopyLink.addEventListener('click', copyShareLink);
 
-    // Check for pre-filled URL from query param
     var params = new URLSearchParams(window.location.search);
     var queryURL = params.get('url');
     if (queryURL) {
@@ -291,7 +347,6 @@
       generateDebounced();
     }
 
-    // Initial state
     setButtonsEnabled(false);
   }
 
