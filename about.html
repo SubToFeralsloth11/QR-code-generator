@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — QR Code Generator</title>
+  <meta name="description" content="About the QR Code Generator — a free, no-account tool to create QR codes for websites, videos, and any URL.">
+  <meta name="robots" content="index, follow">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/" class="site-title">QR<span>Code</span> Generator</a>
+      <nav class="site-nav">
+        <a href="/">Home</a>
+        <a href="about.html">About</a>
+        <a href="privacy.html">Privacy</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="content-page">
+    <h1>About</h1>
+    <p>
+      QR Code Generator is a free, no-account-needed tool that lets you create QR codes
+      for any URL — websites, YouTube videos, Vimeo links, and more. Everything runs
+      directly in your browser. Nothing is uploaded to a server.
+    </p>
+
+    <h2>Why we built this</h2>
+    <p>
+      Most QR code generators require signing up, charge for downloads, or watermark your
+      QR codes. We wanted something simple: paste a link, get a QR code, download it.
+      No strings attached.
+    </p>
+
+    <h2>What you can do</h2>
+    <ul>
+      <li>Generate QR codes for any website or video URL</li>
+      <li>Customize colors to match your brand or style</li>
+      <li>Adjust the size and error correction level</li>
+      <li>Download as PNG, SVG, or PDF</li>
+      <li>Share a link that opens the generator with your URL pre-filled</li>
+    </ul>
+
+    <h2>How it works</h2>
+    <p>
+      The QR code is generated entirely in your browser using JavaScript. Your URL never
+      leaves your device — we don't have a backend server processing data. The libraries
+      we use (<code>qrcode</code> and <code>jsPDF</code>) run client-side, meaning your
+      data stays private.
+    </p>
+
+    <h2>Technology</h2>
+    <p>
+      This site is built with plain HTML, CSS, and JavaScript. No frameworks, no build
+      tools, no database. Just static files served fast. The QR code rendering is powered
+      by the open-source <a href="https://github.com/soldair/node-qrcode" target="_blank" rel="noopener">qrcode</a>
+      library, and PDF export uses <a href="https://github.com/parallax/jsPDF" target="_blank" rel="noopener">jsPDF</a>.
+    </p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; 2026 QR Code Generator. Free for everyone.</p>
+      <nav>
+        <a href="/">Home</a>
+        <a href="about.html">About</a>
+        <a href="privacy.html">Privacy Policy</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>
